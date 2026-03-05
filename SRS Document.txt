@@ -1,0 +1,159 @@
+SOFTWARE REQUIREMENT SPECIFICATION (SRS)
+Online Examination System
+
+
+1. INTRODUCTION
+
+1.1 Purpose
+The purpose of this project is to develop an Online Examination System that automates the process of conducting exams, evaluating answers, and storing results. The system reduces manual work, minimizes errors, and provides a secure and efficient platform for managing examinations.
+
+1.2 Scope
+The Online Examination System allows administrators to create exams, examiners to validate and review answers, and students to take exams online. The system includes features such as question randomization, timer-based exams, automatic evaluation, and result storage.
+
+The system is developed using Java Swing for the user interface and MySQL for database management, connected through JDBC.
+
+1.3 Definitions
+Admin – User who manages exams and question bank.
+Examiner – User who validates students and reviews subjective answers.
+Student – User who takes the exam.
+Question Bank – Collection of questions stored in the database.
+Randomization – Selecting random questions for each exam.
+
+
+2. OVERALL DESCRIPTION
+
+2.1 System Perspective
+The system is a Java-based desktop application that interacts with a MySQL database. Users access the system through role-based login.
+
+System Flow:
+User → Java Swing Interface → Application Logic → JDBC → MySQL Database
+
+2.2 System Users
+
+Admin
+Responsibilities:
+- Create exams
+- Add questions to question bank
+- Define number of questions in exam
+- Manage question types (MCQ or Subjective)
+
+Examiner
+Responsibilities:
+- Validate students before exam
+- Add, update, or delete questions
+- Evaluate subjective answers
+- View results
+
+Student
+Responsibilities:
+- Login to the system
+- Read exam instructions
+- Attempt exam
+- Submit answers
+
+
+3. SYSTEM FEATURES
+
+3.1 User Authentication
+The system provides role-based login for Admin, Examiner, and Student. Each user must enter a username and password to access the system.
+
+3.2 Exam Creation
+Admin can create exams by specifying:
+- Exam title
+- Total number of questions in question bank
+- Number of questions displayed during exam
+
+Example:
+If the question bank has 100 questions, the exam may display 10 random questions.
+
+3.3 Question Bank Management
+The system supports two types of questions.
+
+MCQ Questions:
+- Question text
+- Four options
+- Correct answer
+
+Subjective Questions:
+- Question text
+- Correct answer
+- Keywords for evaluation
+
+3.4 Question Randomization
+During the exam, the system selects random questions from the question bank so that each student receives a different set of questions.
+
+3.5 Exam Timer
+Each exam includes a timer. When the timer ends, the exam is automatically submitted and the student cannot continue answering questions.
+
+3.6 Auto Evaluation
+MCQ answers are evaluated automatically by comparing the student’s answer with the correct answer stored in the database.
+
+Subjective answers are partially evaluated using keywords, and final validation is performed by the examiner.
+
+3.7 Result Management
+After exam submission, the system stores:
+- Student ID
+- Exam ID
+- Score
+- Total marks
+- Submission time
+
+Results are accessible to Admin and Examiner.
+
+
+4. DATABASE REQUIREMENTS
+
+The system uses a MySQL database named:
+
+online_exam_system
+
+Main tables include:
+
+users – Stores login details for Admin, Examiner, and Students.
+questions – Stores the question bank.
+exams – Stores exam details.
+results – Stores student exam results.
+
+
+5. NON-FUNCTIONAL REQUIREMENTS
+
+Security
+- Role-based access control
+- Password protection
+- Prepared statements to prevent SQL injection
+
+Performance
+- The system should handle multiple students taking exams.
+- Random question selection must be efficient.
+
+Usability
+- Simple and user-friendly interface
+- Easy navigation for users
+
+Reliability
+- Automatic exam submission when timer ends
+- Data stored safely in the database
+
+
+6. ASSUMPTIONS
+
+- All users have valid login credentials.
+- The system runs locally on a computer with Java installed.
+- Admin and Examiner are responsible for managing questions and exams.
+
+
+7. CONSTRAINTS
+
+- The system is built using Java Swing.
+- The database used is MySQL.
+- The system runs on a computer with Java and MySQL installed.
+
+
+8. REFERENCES
+
+Resources used during development:
+
+- Java Documentation (Oracle)
+- MySQL Documentation
+- JDBC Tutorials
+- Software Engineering Course Materials
