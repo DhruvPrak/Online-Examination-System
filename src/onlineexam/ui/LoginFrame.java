@@ -17,10 +17,10 @@ public class LoginFrame extends JFrame {
     public LoginFrame() {
 
         setTitle("Online Examination System - Login");
-        setSize(400,300);
+        setSize(400, 250);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(5,2,10,10));
+        setLayout(new GridLayout(4, 2, 10, 10));
 
         JLabel userLabel = new JLabel("Username:");
         JLabel passLabel = new JLabel("Password:");
@@ -35,7 +35,6 @@ public class LoginFrame extends JFrame {
         roleBox.addItem("STUDENT");
 
         JButton loginBtn = new JButton("Login");
-
         loginBtn.addActionListener(this::loginUser);
 
         add(userLabel);
@@ -52,48 +51,73 @@ public class LoginFrame extends JFrame {
 
     private void loginUser(ActionEvent e) {
 
-        String username = usernameField.getText();
-        String password = new String(passwordField.getPassword());
-        String role = (String) roleBox.getSelectedItem();
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword()).trim();
+        String role = roleBox.getSelectedItem().toString();
 
-        try {
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter username and password.");
+            return;
+        }
 
-            Connection conn = DBConnection.getConnection();
+        String sql = "SELECT role FROM users WHERE username=? AND password=?";
 
-            String sql = "SELECT * FROM users WHERE username=? AND password=? AND role=?";
+        try (Connection conn = DBConnection.getConnection()) {
+
+            if (conn == null) {
+                JOptionPane.showMessageDialog(this, "Database connection failed.");
+                return;
+            }
 
             PreparedStatement stmt = conn.prepareStatement(sql);
-
             stmt.setString(1, username);
             stmt.setString(2, password);
-            stmt.setString(3, role);
 
             ResultSet rs = stmt.executeQuery();
 
-            if(rs.next()) {
+            if (rs.next()) {
 
-                JOptionPane.showMessageDialog(this,"Login Successful!");
+                String dbRole = rs.getString("role");
 
-                if(role.equals("ADMIN")) {
-                    new AdminFrame();
-                }
-                else if(role.equals("EXAMINER")) {
-                    new ExaminerFrame();
-                }
-                else {
-                    new StudentFrame();
-                }
+                if (role.equalsIgnoreCase(dbRole)) {
 
-                dispose();
+                    JOptionPane.showMessageDialog(this, "Login Successful!");
+
+                    openDashboard(role);
+                    dispose();
+
+                } else {
+                    JOptionPane.showMessageDialog(this, "Incorrect role selected!");
+                }
 
             } else {
-
-                JOptionPane.showMessageDialog(this,"Invalid Credentials!");
-
+                JOptionPane.showMessageDialog(this, "Invalid username or password!");
             }
 
         } catch (Exception ex) {
             ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error connecting to database.");
+        }
+    }
+
+    private void openDashboard(String role) {
+
+        switch (role) {
+
+            case "ADMIN":
+                new AdminFrame();
+                break;
+
+            case "EXAMINER":
+                new ExaminerFrame();
+                break;
+
+            case "STUDENT":
+                new StudentFrame();
+                break;
+
+            default:
+                JOptionPane.showMessageDialog(this, "Unknown role.");
         }
     }
 }
