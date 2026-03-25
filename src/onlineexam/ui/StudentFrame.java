@@ -7,6 +7,7 @@ public class StudentFrame extends JFrame {
 
     int sId;
     JButton startExamButton;
+    JButton viewResultsButton;
 
     public StudentFrame(int sID) {
         this.sId = sID;
@@ -16,15 +17,22 @@ public class StudentFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         startExamButton = new JButton("Start Exam");
+        viewResultsButton = new JButton("View Results");
 
         startExamButton.addActionListener(e -> {
             new StartExamFrame(sId);
             dispose();
         });
 
+        viewResultsButton.addActionListener(e -> {
+            new StudentResultsFrame(sId);
+            dispose();
+        });
+
         setLayout(new FlowLayout());
 
         add(startExamButton);
+        add(viewResultsButton);
 
         setVisible(true);
     }
