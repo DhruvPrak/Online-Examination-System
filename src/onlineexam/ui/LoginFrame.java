@@ -60,7 +60,7 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        String sql = "SELECT role FROM users WHERE username=? AND password=?";
+        String sql = "SELECT id, role FROM users WHERE username=? AND password=?";
 
         try (Connection conn = DBConnection.getConnection()) {
 
@@ -77,13 +77,14 @@ public class LoginFrame extends JFrame {
 
             if (rs.next()) {
 
+                int userId = rs.getInt("id");
                 String dbRole = rs.getString("role");
 
                 if (role.equalsIgnoreCase(dbRole)) {
 
                     JOptionPane.showMessageDialog(this, "Login Successful!");
 
-                    openDashboard(role);
+                    openDashboard(role, userId);
                     dispose();
 
                 } else {
@@ -100,7 +101,7 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    private void openDashboard(String role) {
+    private void openDashboard(String role, int userId) {
 
         switch (role) {
 
@@ -113,7 +114,7 @@ public class LoginFrame extends JFrame {
                 break;
 
             case "STUDENT":
-                new StudentFrame();
+                new StudentFrame(userId);
                 break;
 
             default:
