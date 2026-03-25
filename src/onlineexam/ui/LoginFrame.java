@@ -110,7 +110,7 @@ public class LoginFrame extends JFrame {
                 break;
 
             case "EXAMINER":
-                new ExaminerFrame();
+                new ExaminerFrame(userId);
                 break;
 
             case "STUDENT":
