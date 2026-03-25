@@ -8,22 +8,22 @@ public class AdminFrame extends JFrame {
     public AdminFrame() {
 
         setTitle("Admin Dashboard");
-        setSize(400,300);
+        setSize(400,250);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(3,1,10,10));
 
         JLabel title = new JLabel("Admin Dashboard", JLabel.CENTER);
 
-        JButton addQuestionBtn = new JButton("Add Question");
-        JButton viewQuestionsBtn = new JButton("View Questions");
+        JButton createExamBtn = new JButton("Create Exam");
+        JButton viewExamBtn = new JButton("View Exam");
 
-        addQuestionBtn.addActionListener(e -> new AddQuestionFrame());
-        viewQuestionsBtn.addActionListener(e -> new ViewQuestionsFrame());
+        createExamBtn.addActionListener(e -> new CreateExamFrame());
+        viewExamBtn.addActionListener(e -> new ViewExamFrame());
 
         add(title);
-        add(addQuestionBtn);
-        add(viewQuestionsBtn);
+        add(createExamBtn);
+        add(viewExamBtn);
 
         setVisible(true);
     }

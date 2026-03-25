@@ -7,27 +7,25 @@ import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
-public class AddQuestionFrame extends JFrame {
+public class AddExamQuestionsFrame extends JFrame {
 
-    JTextField questionField;
-    JTextField optionA;
-    JTextField optionB;
-    JTextField optionC;
-    JTextField optionD;
-    JTextField answerField;
+    JTextField questionField, aField, bField, cField, dField, answerField;
+    int examId;
 
-    public AddQuestionFrame() {
+    public AddExamQuestionsFrame(int examId) {
 
-        setTitle("Add Question");
+        this.examId = examId;
+
+        setTitle("Add Questions to Exam " + examId);
         setSize(500,400);
         setLocationRelativeTo(null);
         setLayout(new GridLayout(7,2,10,10));
 
         questionField = new JTextField();
-        optionA = new JTextField();
-        optionB = new JTextField();
-        optionC = new JTextField();
-        optionD = new JTextField();
+        aField = new JTextField();
+        bField = new JTextField();
+        cField = new JTextField();
+        dField = new JTextField();
         answerField = new JTextField();
 
         JButton addBtn = new JButton("Add Question");
@@ -36,16 +34,16 @@ public class AddQuestionFrame extends JFrame {
         add(questionField);
 
         add(new JLabel("Option A:"));
-        add(optionA);
+        add(aField);
 
         add(new JLabel("Option B:"));
-        add(optionB);
+        add(bField);
 
         add(new JLabel("Option C:"));
-        add(optionC);
+        add(cField);
 
         add(new JLabel("Option D:"));
-        add(optionD);
+        add(dField);
 
         add(new JLabel("Correct Answer:"));
         add(answerField);
@@ -60,22 +58,23 @@ public class AddQuestionFrame extends JFrame {
 
     private void addQuestion() {
 
-        String sql = "INSERT INTO questions (question_text, option_a, option_b, option_c, option_d, correct_answer) VALUES (?,?,?,?,?,?)";
+        String sql = "INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_answer) VALUES (?,?,?,?,?,?,?)";
 
         try(Connection conn = DBConnection.getConnection()) {
 
             PreparedStatement stmt = conn.prepareStatement(sql);
 
-            stmt.setString(1, questionField.getText());
-            stmt.setString(2, optionA.getText());
-            stmt.setString(3, optionB.getText());
-            stmt.setString(4, optionC.getText());
-            stmt.setString(5, optionD.getText());
-            stmt.setString(6, answerField.getText());
+            stmt.setInt(1, examId);
+            stmt.setString(2, questionField.getText());
+            stmt.setString(3, aField.getText());
+            stmt.setString(4, bField.getText());
+            stmt.setString(5, cField.getText());
+            stmt.setString(6, dField.getText());
+            stmt.setString(7, answerField.getText());
 
             stmt.executeUpdate();
 
-            JOptionPane.showMessageDialog(this,"Question Added Successfully!");
+            JOptionPane.showMessageDialog(this,"Question Added!");
 
         } catch(Exception ex) {
             ex.printStackTrace();
