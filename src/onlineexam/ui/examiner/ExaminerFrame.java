@@ -1,7 +1,7 @@
-package onlineexam.ui;
+package onlineexam.ui.examiner;
 
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class ExaminerFrame extends JFrame {
 
@@ -17,9 +17,12 @@ public class ExaminerFrame extends JFrame {
         this.examinerId = examinerId;
 
         setTitle("Examiner Dashboard");
-        setSize(400,200);
+        setSize(400,300);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        JLabel title = new JLabel("Examiner Dashboard", JLabel.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 18));
 
         addQuestionBtn = new JButton("Add Question");
         viewQuestionsBtn = new JButton("View My Questions");
@@ -44,10 +47,19 @@ public class ExaminerFrame extends JFrame {
 
         });
 
-        setLayout(new FlowLayout());
+        startExamBtn.addActionListener(e -> {
 
+            new ExamControlFrame(examinerId);
+
+        });
+
+        setLayout(new GridLayout(5,1,10,10));
+
+        add(title);
         add(addQuestionBtn);
         add(viewQuestionsBtn);
+        add(manageStudentsBtn);
+        add(startExamBtn);
 
         setVisible(true);
     }

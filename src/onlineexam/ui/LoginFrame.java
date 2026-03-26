@@ -7,6 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.*;
 import onlineexam.util.DBConnection;
+import onlineexam.ui.admin.AdminFrame;
+import onlineexam.ui.examiner.ExaminerFrame;
+import onlineexam.ui.student.StudentFrame;
 
 public class LoginFrame extends JFrame {
 
@@ -21,6 +24,7 @@ public class LoginFrame extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(4, 2, 10, 10));
+        ((JComponent)getContentPane()).setBorder(BorderFactory.createEmptyBorder(15,15,15,15));
 
         JLabel userLabel = new JLabel("Username:");
         JLabel passLabel = new JLabel("Password:");
@@ -69,35 +73,36 @@ public class LoginFrame extends JFrame {
                 return;
             }
 
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, username);
-            stmt.setString(2, password);
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, username);
+                stmt.setString(2, password);
 
-            ResultSet rs = stmt.executeQuery();
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
 
-            if (rs.next()) {
+                        int userId = rs.getInt("id");
+                        String dbRole = rs.getString("role");
 
-                int userId = rs.getInt("id");
-                String dbRole = rs.getString("role");
+                        if (role.equalsIgnoreCase(dbRole)) {
 
-                if (role.equalsIgnoreCase(dbRole)) {
+                            JOptionPane.showMessageDialog(this, "Login Successful!");
 
-                    JOptionPane.showMessageDialog(this, "Login Successful!");
+                            openDashboard(role, userId);
+                            dispose();
 
-                    openDashboard(role, userId);
-                    dispose();
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Incorrect role selected!");
+                        }
 
-                } else {
-                    JOptionPane.showMessageDialog(this, "Incorrect role selected!");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Invalid username or password!");
+                    }
                 }
-
-            } else {
-                JOptionPane.showMessageDialog(this, "Invalid username or password!");
             }
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error connecting to database.");
+            JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage());
         }
     }
 

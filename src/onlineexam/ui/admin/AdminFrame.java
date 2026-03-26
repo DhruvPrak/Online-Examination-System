@@ -1,7 +1,8 @@
-package onlineexam.ui;
+package onlineexam.ui.admin;
 
 import javax.swing.*;
 import java.awt.*;
+
 
 public class AdminFrame extends JFrame {
 

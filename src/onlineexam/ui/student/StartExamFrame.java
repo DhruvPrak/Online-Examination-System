@@ -1,4 +1,4 @@
-package onlineexam.ui;
+package onlineexam.ui.student;
 
 import java.awt.*;
 import javax.swing.*;

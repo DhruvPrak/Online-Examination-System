@@ -1,4 +1,4 @@
-package onlineexam.ui;
+package onlineexam.ui.admin;
 
 import onlineexam.util.DBConnection;
 

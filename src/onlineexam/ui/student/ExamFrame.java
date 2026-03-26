@@ -1,4 +1,4 @@
-package onlineexam.ui;
+package onlineexam.ui.student;
 
 import java.awt.*;
 import java.sql.*;
@@ -32,6 +32,11 @@ public class ExamFrame extends JFrame {
 
         this.studentId = studentId;
         this.examId = examId;
+
+        if(!isExamAllowed()){
+            dispose();
+            return;
+        }
 
         setTitle("Online Exam");
         setSize(600,400);
@@ -72,6 +77,7 @@ public class ExamFrame extends JFrame {
 
         loadQuestions();
         startTimer();
+        monitorBanStatus();
 
         nextButton.addActionListener(e -> {
 
@@ -84,6 +90,48 @@ public class ExamFrame extends JFrame {
 
         setVisible(true);
     }
+
+    private boolean isExamAllowed(){
+
+    try{
+
+        Connection conn = DBConnection.getConnection();
+
+        PreparedStatement ps = conn.prepareStatement(
+                "SELECT exam_status FROM users WHERE id=?"
+        );
+
+        ps.setInt(1, studentId);
+
+        ResultSet rs = ps.executeQuery();
+
+        if(rs.next()){
+
+            String status = rs.getString("exam_status");
+
+            if(status.equals("IN_EXAM")){
+                return true;
+            }
+
+            if(status.equals("APPROVED")){
+                JOptionPane.showMessageDialog(this,"Exam not started yet!");
+            }
+
+            if(status.equals("PENDING")){
+                JOptionPane.showMessageDialog(this,"Waiting for examiner approval!");
+            }
+
+            if(status.equals("BANNED")){
+                JOptionPane.showMessageDialog(this,"You are banned from the exam!");
+            }
+        }
+
+    }catch(Exception e){
+        e.printStackTrace();
+    }
+
+    return false;
+}
 
     private void loadQuestions(){
 
@@ -105,6 +153,43 @@ public class ExamFrame extends JFrame {
             e.printStackTrace();
         }
     }
+
+    private void monitorBanStatus(){
+
+    Timer checkTimer = new Timer(3000, e -> {
+
+        try{
+
+            Connection conn = DBConnection.getConnection();
+
+            PreparedStatement ps = conn.prepareStatement(
+                    "SELECT exam_status FROM users WHERE id=?"
+            );
+
+            ps.setInt(1, studentId);
+
+            ResultSet rs = ps.executeQuery();
+
+            if(rs.next()){
+
+                if(rs.getString("exam_status").equals("BANNED")){
+
+                    JOptionPane.showMessageDialog(this,
+                            "You have been removed from the exam.");
+
+                    submitExam();
+
+                }
+            }
+
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }
+
+    });
+
+    checkTimer.start();
+}
 
     private void loadNextQuestion(){
 
