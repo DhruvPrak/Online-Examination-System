@@ -1,53 +1,68 @@
 package onlineexam.ui.student;
 
-import java.awt.*;
-import java.sql.*;
-import java.util.ArrayList;
-import javax.swing.*;
 import onlineexam.util.DBConnection;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.*;
 
 public class ExamFrame extends JFrame {
 
-    int studentId;
-    int examId;
+    private int studentId;
+    private int examId;
 
-    JLabel timerLabel;
-    JLabel questionLabel;
+    private JLabel questionLabel;
+    private JRadioButton optionA, optionB, optionC, optionD;
+    private ButtonGroup optionsGroup;
 
-    JRadioButton optionA, optionB, optionC, optionD;
-    ButtonGroup optionsGroup;
+    private JButton nextButton, prevButton, submitButton;
 
-    JButton nextButton;
-    JButton submitButton;
+    private JLabel timerLabel;
+    private Timer timer;
+    private int timeLeft = 600; // 10 minutes
 
-    Timer timer;
-    int timeLeft = 600; // 10 minutes
+    private java.util.List<Map<String, String>> questions = new ArrayList<>();
+    private Map<Integer, String> answers = new HashMap<>();
 
-    ArrayList<String> correctAnswers = new ArrayList<>();
-    ArrayList<String> studentAnswers = new ArrayList<>();
+    private int currentQuestionIndex = 0;
 
-    ResultSet rs;
-
-    public ExamFrame(int studentId, int examId){
+    public ExamFrame(int studentId, int examId) {
 
         this.studentId = studentId;
         this.examId = examId;
 
-        if(!isExamAllowed()){
-            dispose();
-            return;
-        }
-
-        setTitle("Online Exam");
-        setSize(600,400);
+        setTitle("Exam");
+        setSize(700, 400);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        timerLabel = new JLabel("Time Remaining: 10:00");
-        timerLabel.setFont(new Font("Arial",Font.BOLD,16));
-        timerLabel.setForeground(Color.RED);
+        initUI();
+        loadQuestions();
+        displayQuestion();
+        startTimer();
 
-        questionLabel = new JLabel("Question");
+        setVisible(true);
+    }
+
+    private void initUI() {
+
+        setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        timerLabel = new JLabel("Time Left: 10:00");
+        timerLabel.setHorizontalAlignment(JLabel.RIGHT);
+        topPanel.add(timerLabel, BorderLayout.EAST);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        JPanel centerPanel = new JPanel(new GridLayout(5,1));
+
+        questionLabel = new JLabel();
+        centerPanel.add(questionLabel);
 
         optionA = new JRadioButton();
         optionB = new JRadioButton();
@@ -55,256 +70,219 @@ public class ExamFrame extends JFrame {
         optionD = new JRadioButton();
 
         optionsGroup = new ButtonGroup();
-
         optionsGroup.add(optionA);
         optionsGroup.add(optionB);
         optionsGroup.add(optionC);
         optionsGroup.add(optionD);
 
+        centerPanel.add(optionA);
+        centerPanel.add(optionB);
+        centerPanel.add(optionC);
+        centerPanel.add(optionD);
+
+        add(centerPanel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel();
+
+        prevButton = new JButton("Previous");
         nextButton = new JButton("Next");
-        submitButton = new JButton("Submit");
+        submitButton = new JButton("Submit Exam");
 
-        setLayout(new GridLayout(8,1));
-
-        add(timerLabel);
-        add(questionLabel);
-        add(optionA);
-        add(optionB);
-        add(optionC);
-        add(optionD);
-        add(nextButton);
-        add(submitButton);
-
-        loadQuestions();
-        startTimer();
-        monitorBanStatus();
-
-        nextButton.addActionListener(e -> {
-
-            studentAnswers.add(getSelectedAnswer());
-            loadNextQuestion();
-
-        });
-
+        prevButton.addActionListener(e -> previousQuestion());
+        nextButton.addActionListener(e -> nextQuestion());
         submitButton.addActionListener(e -> submitExam());
 
-        setVisible(true);
+        bottomPanel.add(prevButton);
+        bottomPanel.add(nextButton);
+        bottomPanel.add(submitButton);
+
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    private boolean isExamAllowed(){
+    private void loadQuestions() {
 
-    try{
-
-        Connection conn = DBConnection.getConnection();
-
-        PreparedStatement ps = conn.prepareStatement(
-                "SELECT exam_status FROM users WHERE id=?"
-        );
-
-        ps.setInt(1, studentId);
-
-        ResultSet rs = ps.executeQuery();
-
-        if(rs.next()){
-
-            String status = rs.getString("exam_status");
-
-            if(status.equals("IN_EXAM")){
-                return true;
-            }
-
-            if(status.equals("APPROVED")){
-                JOptionPane.showMessageDialog(this,"Exam not started yet!");
-            }
-
-            if(status.equals("PENDING")){
-                JOptionPane.showMessageDialog(this,"Waiting for examiner approval!");
-            }
-
-            if(status.equals("BANNED")){
-                JOptionPane.showMessageDialog(this,"You are banned from the exam!");
-            }
-        }
-
-    }catch(Exception e){
-        e.printStackTrace();
-    }
-
-    return false;
-}
-
-    private void loadQuestions(){
-
-        try{
+        try {
 
             Connection conn = DBConnection.getConnection();
 
-            PreparedStatement ps = conn.prepareStatement(
-                    "SELECT * FROM questions WHERE exam_id=? ORDER BY RAND() LIMIT 10"
-            );
+            String query =
+                    "SELECT question_text, option_a, option_b, option_c, option_d, correct_answer " +
+                    "FROM questions WHERE exam_id=? ORDER BY RAND() LIMIT 10";
 
+            PreparedStatement ps = conn.prepareStatement(query);
             ps.setInt(1, examId);
-
-            rs = ps.executeQuery();
-
-            loadNextQuestion();
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    private void monitorBanStatus(){
-
-    Timer checkTimer = new Timer(3000, e -> {
-
-        try{
-
-            Connection conn = DBConnection.getConnection();
-
-            PreparedStatement ps = conn.prepareStatement(
-                    "SELECT exam_status FROM users WHERE id=?"
-            );
-
-            ps.setInt(1, studentId);
 
             ResultSet rs = ps.executeQuery();
 
-            if(rs.next()){
+            while(rs.next()) {
 
-                if(rs.getString("exam_status").equals("BANNED")){
+                Map<String, String> q = new HashMap<>();
 
-                    JOptionPane.showMessageDialog(this,
-                            "You have been removed from the exam.");
+                q.put("question", rs.getString("question_text"));
+                q.put("A", rs.getString("option_a"));
+                q.put("B", rs.getString("option_b"));
+                q.put("C", rs.getString("option_c"));
+                q.put("D", rs.getString("option_d"));
+                q.put("correct", rs.getString("correct_answer"));
 
-                    submitExam();
-
-                }
+                questions.add(q);
             }
 
-        }catch(Exception ex){
-            ex.printStackTrace();
-        }
-
-    });
-
-    checkTimer.start();
-}
-
-    private void loadNextQuestion(){
-
-        try{
-
-            if(rs.next()){
-
-                questionLabel.setText(rs.getString("question_text"));
-
-                optionA.setText(rs.getString("option_a"));
-                optionB.setText(rs.getString("option_b"));
-                optionC.setText(rs.getString("option_c"));
-                optionD.setText(rs.getString("option_d"));
-
-                correctAnswers.add(rs.getString("correct_answer"));
-
-                optionsGroup.clearSelection();
-
-            }else{
-
-                JOptionPane.showMessageDialog(this,"No more questions!");
-
-            }
-
-        }catch(Exception e){
+        } catch(Exception e) {
             e.printStackTrace();
         }
     }
 
-    private String getSelectedAnswer(){
+    private void displayQuestion() {
 
-        if(optionA.isSelected()) return optionA.getText();
-        if(optionB.isSelected()) return optionB.getText();
-        if(optionC.isSelected()) return optionC.getText();
-        if(optionD.isSelected()) return optionD.getText();
+        if(questions.isEmpty()) return;
 
-        return "";
-    }
+        Map<String,String> q = questions.get(currentQuestionIndex);
 
-    private void submitExam(){
-        System.out.println("Submitting Exam...");
-        timer.stop();
-
-        studentAnswers.add(getSelectedAnswer());
-
-        int score = 0;
-
-        for(int i=0;i<correctAnswers.size();i++){
-
-            if(studentAnswers.get(i).equals(correctAnswers.get(i))){
-                score++;
-            }
-
-        }
-
-        saveResult(score);
-
-        JOptionPane.showMessageDialog(this,
-                "Exam Finished!\nYour Score: "+score+"/"+correctAnswers.size());
-
-        dispose();
-    }
-
-    private void saveResult(int score){
-
-    try{
-
-        System.out.println("Saving Result to Database...");
-
-        Connection conn = DBConnection.getConnection();
-
-        PreparedStatement ps = conn.prepareStatement(
-        "INSERT INTO results (student_id, exam_id, score, total_marks, status) VALUES (?,?,?,?,?)"
+        questionLabel.setText(
+                "Q" + (currentQuestionIndex+1) + ": " + q.get("question")
         );
 
-        ps.setInt(1, studentId);
-        ps.setInt(2, examId);
-        ps.setInt(3, score);
-        ps.setInt(4, correctAnswers.size());
+        optionA.setText(q.get("A"));
+        optionB.setText(q.get("B"));
+        optionC.setText(q.get("C"));
+        optionD.setText(q.get("D"));
 
-        String status = score >= (correctAnswers.size()/2) ? "PASS" : "FAIL";
+        optionsGroup.clearSelection();
 
-        ps.setString(5, status);
+        if(answers.containsKey(currentQuestionIndex)) {
 
-        ps.executeUpdate();
+            String ans = answers.get(currentQuestionIndex);
 
-        System.out.println("Result inserted successfully!");
-
-    }catch(Exception e){
-        e.printStackTrace();
+            if(ans.equals("A")) optionA.setSelected(true);
+            if(ans.equals("B")) optionB.setSelected(true);
+            if(ans.equals("C")) optionC.setSelected(true);
+            if(ans.equals("D")) optionD.setSelected(true);
+        }
     }
-}
-    private void startTimer(){
 
-        timer = new Timer(1000, e -> {
+    private void saveAnswer() {
+
+        String selected = null;
+
+        if(optionA.isSelected()) selected = "A";
+        if(optionB.isSelected()) selected = "B";
+        if(optionC.isSelected()) selected = "C";
+        if(optionD.isSelected()) selected = "D";
+
+        if(selected != null)
+            answers.put(currentQuestionIndex, selected);
+    }
+
+    private void nextQuestion() {
+
+        saveAnswer();
+
+        if(currentQuestionIndex < questions.size()-1) {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+    }
+
+    private void previousQuestion() {
+
+        saveAnswer();
+
+        if(currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            displayQuestion();
+        }
+    }
+
+    private void startTimer() {
+
+        timer = new Timer(1000, (ActionEvent e) -> {
 
             timeLeft--;
 
             int minutes = timeLeft / 60;
             int seconds = timeLeft % 60;
 
-            timerLabel.setText("Time Remaining: "+minutes+":"+String.format("%02d",seconds));
+            timerLabel.setText(
+                    String.format("Time Left: %02d:%02d", minutes, seconds)
+            );
 
-            if(timeLeft <= 0){
+            if(timeLeft <= 0) {
 
                 timer.stop();
-
-                JOptionPane.showMessageDialog(this,"Time is up!");
-
                 submitExam();
-
             }
-
         });
 
         timer.start();
+    }
+
+    private void submitExam() {
+
+        saveAnswer();
+
+        timer.stop();
+
+        int correct = 0;
+
+        for(int i=0;i<questions.size();i++) {
+
+            String correctAns = questions.get(i).get("correct");
+            String studentAns = answers.get(i);
+
+            if(correctAns != null && correctAns.equals(studentAns))
+                correct++;
+        }
+
+        int total = questions.size();
+
+        double percentage = ((double) correct / total) * 100;
+
+        String grade = calculateGrade(percentage);
+
+        saveResult(correct,total);
+
+        JOptionPane.showMessageDialog(this,
+                "Exam Submitted!\n\n" +
+                "Score: " + correct + "/" + total +
+                "\nPercentage: " + String.format("%.2f", percentage) + "%" +
+                "\nGrade: " + grade);
+
+        dispose();
+
+        new StudentFrame(studentId);
+    }
+
+    private String calculateGrade(double percentage) {
+
+        if(percentage >= 90) return "A";
+        else if(percentage >= 75) return "B";
+        else if(percentage >= 60) return "C";
+        else if(percentage >= 40) return "D";
+        else return "F";
+    }
+
+    private void saveResult(int score, int total) {
+
+        try {
+
+            Connection conn = DBConnection.getConnection();
+
+            String query =
+                    "INSERT INTO results (student_id, exam_id, score, total_marks, status) " +
+                    "VALUES (?, ?, ?, ?, 'SUBMITTED')";
+
+            PreparedStatement ps = conn.prepareStatement(query);
+
+            ps.setInt(1, studentId);
+            ps.setInt(2, examId);
+            ps.setInt(3, score);
+            ps.setInt(4, total);
+
+            ps.executeUpdate();
+
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 }

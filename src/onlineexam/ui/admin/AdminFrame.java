@@ -18,13 +18,16 @@ public class AdminFrame extends JFrame {
 
         JButton createExamBtn = new JButton("Create Exam");
         JButton viewExamBtn = new JButton("View Exam");
+        JButton viewResultsBtn = new JButton("View Results");
 
         createExamBtn.addActionListener(e -> new CreateExamFrame());
         viewExamBtn.addActionListener(e -> new ViewExamFrame());
+        viewResultsBtn.addActionListener(e -> new ViewResultsFrame());
 
         add(title);
         add(createExamBtn);
         add(viewExamBtn);
+        add(viewResultsBtn);
 
         setVisible(true);
     }
