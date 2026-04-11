@@ -1,115 +1,86 @@
 package onlineexam.ui.admin;
 
+import java.awt.*;
+import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
+import onlineexam.ui.LoginFrame;
 import onlineexam.util.DBConnection;
 
 public class ViewResultsFrame extends JFrame {
 
-    private JTable table;
-    private DefaultTableModel model;
 
-    public ViewResultsFrame() {
+private JTable table;
+private DefaultTableModel model;
 
-        setTitle("All Student Results");
-        setSize(900,450);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+public ViewResultsFrame() {
 
-        initUI();
-        loadResults();
+    setTitle("All Student Results");
+    setSize(900,450);
+    setLocationRelativeTo(null);
+    setLayout(new BorderLayout());
 
-        setVisible(true);
-    }
+    JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logoutBtn = new JButton("Logout");
 
-    private void initUI() {
+    logoutBtn.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
 
-        String[] columns = {
-                "Student",
-                "Exam",
-                "Score",
-                "Total Marks",
-                "Percentage",
-                "Grade",
-                "Status",
-                "Submitted At"
-        };
+    topPanel.add(logoutBtn);
+    add(topPanel, BorderLayout.NORTH);
 
-        model = new DefaultTableModel(columns, 0);
+    initUI();
+    loadResults();
 
-        table = new JTable(model);
-        table.setRowHeight(25);
+    setVisible(true);
+}
 
-        JScrollPane scrollPane = new JScrollPane(table);
+private void initUI() {
 
-        add(scrollPane, BorderLayout.CENTER);
-    }
+    String[] columns = {"Student","Exam","Score","Total","%","Grade","Status","Time"};
 
-    private void loadResults() {
+    model = new DefaultTableModel(columns, 0);
+    table = new JTable(model);
 
-        try {
+    add(new JScrollPane(table), BorderLayout.CENTER);
+}
 
-            Connection conn = DBConnection.getConnection();
+private void loadResults() {
+    try(Connection conn = DBConnection.getConnection()) {
 
-            String query =
-                    "SELECT u.username, e.exam_title, r.score, r.total_marks, r.status, r.submitted_at " +
-                    "FROM results r " +
-                    "JOIN users u ON r.student_id = u.id " +
-                    "JOIN exams e ON r.exam_id = e.id";
+        PreparedStatement ps = conn.prepareStatement(
+            "SELECT u.username, e.exam_title, r.score, r.total_marks, r.status, r.submitted_at " +
+            "FROM results r JOIN users u ON r.student_id=u.id JOIN exams e ON r.exam_id=e.id"
+        );
 
-            PreparedStatement ps = conn.prepareStatement(query);
-            ResultSet rs = ps.executeQuery();
+        ResultSet rs = ps.executeQuery();
 
-            while (rs.next()) {
+        while(rs.next()) {
+            double per = (rs.getInt("score") * 100.0) / rs.getInt("total_marks");
 
-                String student = rs.getString("username");
-                String exam = rs.getString("exam_title");
-
-                int score = rs.getInt("score");
-                int totalMarks = rs.getInt("total_marks");
-
-                double percentage = ((double) score / totalMarks) * 100;
-
-                String grade = calculateGrade(percentage);
-
-                String status = rs.getString("status");
-                String submittedAt = rs.getString("submitted_at");
-
-                Object[] row = {
-                        student,
-                        exam,
-                        score,
-                        totalMarks,
-                        String.format("%.2f", percentage) + "%",
-                        grade,
-                        status,
-                        submittedAt
-                };
-
-                model.addRow(row);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            model.addRow(new Object[]{
+                rs.getString("username"),
+                rs.getString("exam_title"),
+                rs.getInt("score"),
+                rs.getInt("total_marks"),
+                String.format("%.2f", per),
+                grade(per),
+                rs.getString("status"),
+                rs.getString("submitted_at")
+            });
         }
-    }
 
-    private String calculateGrade(double percentage) {
+    } catch(Exception e) { e.printStackTrace(); }
+}
 
-        if (percentage >= 90)
-            return "A";
-        else if (percentage >= 75)
-            return "B";
-        else if (percentage >= 60)
-            return "C";
-        else if (percentage >= 40)
-            return "D";
-        else
-            return "F";
-    }
+private String grade(double p){
+    if(p>=90) return "A";
+    if(p>=75) return "B";
+    if(p>=60) return "C";
+    if(p>=40) return "D";
+    return "F";
+}
+
 }

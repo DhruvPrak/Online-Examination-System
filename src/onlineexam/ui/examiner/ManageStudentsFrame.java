@@ -1,105 +1,117 @@
 package onlineexam.ui.examiner;
 
-import onlineexam.util.DBConnection;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import onlineexam.ui.LoginFrame;
+import onlineexam.util.DBConnection;
 
 public class ManageStudentsFrame extends JFrame {
 
-    JTable table;
-    DefaultTableModel model;
+JTable table;
+DefaultTableModel model;
 
-    public ManageStudentsFrame(){
+JButton approveBtn, banBtn;
 
-        setTitle("Manage Students");
-        setSize(600,400);
-        setLocationRelativeTo(null);
+public ManageStudentsFrame(){
 
-        model = new DefaultTableModel();
+    setTitle("Manage Students");
+    setSize(600,400);
+    setLocationRelativeTo(null);
+    setLayout(new BorderLayout());
 
-        model.addColumn("ID");
-        model.addColumn("Username");
-        model.addColumn("Status");
+    JPanel top = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logout = new JButton("Logout");
 
-        table = new JTable(model);
+    logout.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
 
-        JButton approveBtn = new JButton("Approve Student");
-        JButton banBtn = new JButton("Ban Student");
+    top.add(logout);
+    add(top, BorderLayout.NORTH);
 
-        approveBtn.addActionListener(e -> updateStatus("APPROVED"));
-        banBtn.addActionListener(e -> updateStatus("BANNED"));
+    model = new DefaultTableModel(
+        new String[]{"ID","Username","Status"},0
+    );
 
-        add(new JScrollPane(table), BorderLayout.CENTER);
+    table = new JTable(model);
 
-        JPanel panel = new JPanel();
-        panel.add(approveBtn);
-        panel.add(banBtn);
+    add(new JScrollPane(table), BorderLayout.CENTER);
 
-        add(panel, BorderLayout.SOUTH);
+    JPanel bottom = new JPanel();
+
+    approveBtn = new JButton("Approve");
+    banBtn = new JButton("Ban");
+
+    bottom.add(approveBtn);
+    bottom.add(banBtn);
+
+    add(bottom, BorderLayout.SOUTH);
+
+    loadStudents();
+
+    approveBtn.addActionListener(e -> updateStatus("APPROVED"));
+    banBtn.addActionListener(e -> updateStatus("BANNED"));
+
+    setVisible(true);
+}
+
+private void loadStudents(){
+
+    model.setRowCount(0);
+
+    try(Connection conn = DBConnection.getConnection()){
+
+        PreparedStatement ps = conn.prepareStatement(
+            "SELECT id, username, exam_status FROM users WHERE role='STUDENT'"
+        );
+
+        ResultSet rs = ps.executeQuery();
+
+        while(rs.next()){
+            model.addRow(new Object[]{
+                rs.getInt("id"),
+                rs.getString("username"),
+                rs.getString("exam_status")
+            });
+        }
+
+    }catch(Exception e){
+        e.printStackTrace();
+    }
+}
+
+private void updateStatus(String newStatus){
+
+    int row = table.getSelectedRow();
+
+    if(row == -1){
+        JOptionPane.showMessageDialog(this,"Select a student!");
+        return;
+    }
+
+    int studentId = (int) model.getValueAt(row,0);
+
+    try(Connection conn = DBConnection.getConnection()){
+
+        PreparedStatement ps = conn.prepareStatement(
+            "UPDATE users SET exam_status=? WHERE id=?"
+        );
+
+        ps.setString(1,newStatus);
+        ps.setInt(2,studentId);
+
+        ps.executeUpdate();
+
+        JOptionPane.showMessageDialog(this,"Updated!");
 
         loadStudents();
 
-        setVisible(true);
+    }catch(Exception e){
+        e.printStackTrace();
     }
+}
 
-    private void loadStudents(){
-
-        try{
-
-            Connection conn = DBConnection.getConnection();
-
-            PreparedStatement ps = conn.prepareStatement(
-                    "SELECT id, username, exam_status FROM users WHERE role='STUDENT'"
-            );
-
-            ResultSet rs = ps.executeQuery();
-
-            while(rs.next()){
-
-                model.addRow(new Object[]{
-                        rs.getInt("id"),
-                        rs.getString("username"),
-                        rs.getString("exam_status")
-                });
-
-            }
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    private void updateStatus(String status){
-
-        int row = table.getSelectedRow();
-
-        if(row == -1){
-            JOptionPane.showMessageDialog(this,"Select a student first");
-            return;
-        }
-
-        int studentId = (int) model.getValueAt(row,0);
-
-        try{
-
-            Connection conn = DBConnection.getConnection();
-
-            PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE users SET exam_status=? WHERE id=?"
-            );
-
-            ps.setString(1,status);
-            ps.setInt(2,studentId);
-
-            ps.executeUpdate();
-
-            JOptionPane.showMessageDialog(this,"Student status updated!");
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
 }

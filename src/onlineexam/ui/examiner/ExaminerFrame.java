@@ -2,65 +2,63 @@ package onlineexam.ui.examiner;
 
 import java.awt.*;
 import javax.swing.*;
+import onlineexam.ui.LoginFrame;
 
 public class ExaminerFrame extends JFrame {
 
-    int examinerId;
+int examinerId;
 
-    JButton addQuestionBtn;
-    JButton viewQuestionsBtn;
-    JButton manageStudentsBtn;
-    JButton startExamBtn;
+public ExaminerFrame(int examinerId){
 
-    public ExaminerFrame(int examinerId){
+    this.examinerId = examinerId;
 
-        this.examinerId = examinerId;
+    setTitle("Examiner Dashboard");
+    setSize(400,300);
+    setLocationRelativeTo(null);
+    setLayout(new BorderLayout());
 
-        setTitle("Examiner Dashboard");
-        setSize(400,300);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    JPanel top = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logout = new JButton("Logout");
 
-        JLabel title = new JLabel("Examiner Dashboard", JLabel.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 18));
+    logout.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
 
-        addQuestionBtn = new JButton("Add Question");
-        viewQuestionsBtn = new JButton("View My Questions");
-        manageStudentsBtn = new JButton("Manage Students");
-        startExamBtn = new JButton("Start Exam");
+    top.add(logout);
+    add(top, BorderLayout.NORTH);
 
-        addQuestionBtn.addActionListener(e -> {
+    JPanel panel = new JPanel(new GridLayout(4,1,10,10));
 
-            new AddQuestionFrame(examinerId);
+    JButton addQuestionBtn = new JButton("Add Question");
+    JButton viewQuestionsBtn = new JButton("View Questions");
+    JButton manageStudentsBtn = new JButton("Manage Students");
+    JButton startExamBtn = new JButton("Start Exam");
 
-        });
+    addQuestionBtn.addActionListener(e -> {
+        new AddQuestionFrame(examinerId);
+    });
 
-        viewQuestionsBtn.addActionListener(e -> {
+    viewQuestionsBtn.addActionListener(e -> {
+        new ViewQuestionsFrame(examinerId);
+    });
 
-            new ViewQuestionsFrame(examinerId);
+    manageStudentsBtn.addActionListener(e -> {
+        new ManageStudentsFrame();
+    });
 
-        });
+    startExamBtn.addActionListener(e -> {
+        new ExamControlFrame(examinerId);
+    });
 
-        manageStudentsBtn.addActionListener(e -> {
+    panel.add(addQuestionBtn);
+    panel.add(viewQuestionsBtn);
+    panel.add(manageStudentsBtn);
+    panel.add(startExamBtn);
 
-            new ManageStudentsFrame();
+    add(panel, BorderLayout.CENTER);
 
-        });
+    setVisible(true);
+}
 
-        startExamBtn.addActionListener(e -> {
-
-            new ExamControlFrame(examinerId);
-
-        });
-
-        setLayout(new GridLayout(5,1,10,10));
-
-        add(title);
-        add(addQuestionBtn);
-        add(viewQuestionsBtn);
-        add(manageStudentsBtn);
-        add(startExamBtn);
-
-        setVisible(true);
-    }
 }

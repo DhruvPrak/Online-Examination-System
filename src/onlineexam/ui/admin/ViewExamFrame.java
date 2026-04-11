@@ -1,81 +1,95 @@
 package onlineexam.ui.admin;
 
-import onlineexam.util.DBConnection;
-
+import java.awt.*;
+import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import onlineexam.ui.LoginFrame;
+import onlineexam.util.DBConnection;
 
 public class ViewExamFrame extends JFrame {
 
-    JTextField examIdField;
-    JTable table;
-    DefaultTableModel model;
 
-    public ViewExamFrame() {
+JTextField examIdField;
+JTable table;
+DefaultTableModel model;
 
-        setTitle("View Exam");
-        setSize(700,400);
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
+public ViewExamFrame() {
 
-        JPanel top = new JPanel();
+    setTitle("View Exam");
+    setSize(700,400);
+    setLocationRelativeTo(null);
 
-        examIdField = new JTextField(10);
-        JButton loadBtn = new JButton("Load Exam");
+    setLayout(new BorderLayout());
 
-        top.add(new JLabel("Enter Exam ID:"));
-        top.add(examIdField);
-        top.add(loadBtn);
+    JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logoutBtn = new JButton("Logout");
 
-        model = new DefaultTableModel();
-        table = new JTable(model);
+    logoutBtn.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
 
-        model.addColumn("Question");
-        model.addColumn("A");
-        model.addColumn("B");
-        model.addColumn("C");
-        model.addColumn("D");
-        model.addColumn("Answer");
+    topPanel.add(logoutBtn);
+    add(topPanel, BorderLayout.NORTH);
 
-        loadBtn.addActionListener(e -> loadExam());
+    JPanel top = new JPanel();
 
-        add(top, BorderLayout.NORTH);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+    examIdField = new JTextField(10);
+    JButton loadBtn = new JButton("Load Exam");
 
-        setVisible(true);
-    }
+    top.add(new JLabel("Exam ID:"));
+    top.add(examIdField);
+    top.add(loadBtn);
 
-    private void loadExam() {
+    add(top, BorderLayout.SOUTH);
 
-        model.setRowCount(0);
+    model = new DefaultTableModel();
+    table = new JTable(model);
 
-        String sql = "SELECT * FROM questions WHERE exam_id=?";
+    model.addColumn("Question");
+    model.addColumn("A");
+    model.addColumn("B");
+    model.addColumn("C");
+    model.addColumn("D");
+    model.addColumn("Answer");
 
-        try(Connection conn = DBConnection.getConnection()) {
+    add(new JScrollPane(table), BorderLayout.CENTER);
 
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setInt(1, Integer.parseInt(examIdField.getText()));
+    loadBtn.addActionListener(e -> loadExam());
 
-            ResultSet rs = stmt.executeQuery();
+    setVisible(true);
+}
 
-            while(rs.next()) {
+private void loadExam() {
 
-                model.addRow(new Object[]{
-                        rs.getString("question_text"),
-                        rs.getString("option_a"),
-                        rs.getString("option_b"),
-                        rs.getString("option_c"),
-                        rs.getString("option_d"),
-                        rs.getString("correct_answer")
-                });
-            }
+    model.setRowCount(0);
 
-        } catch(Exception ex) {
-            ex.printStackTrace();
+    try(Connection conn = DBConnection.getConnection()) {
+
+        PreparedStatement stmt = conn.prepareStatement(
+            "SELECT * FROM questions WHERE exam_id=?"
+        );
+
+        stmt.setInt(1, Integer.parseInt(examIdField.getText()));
+
+        ResultSet rs = stmt.executeQuery();
+
+        while(rs.next()) {
+            model.addRow(new Object[]{
+                    rs.getString("question_text"),
+                    rs.getString("option_a"),
+                    rs.getString("option_b"),
+                    rs.getString("option_c"),
+                    rs.getString("option_d"),
+                    rs.getString("correct_answer")
+            });
         }
+
+    } catch(Exception e) {
+        e.printStackTrace();
     }
+}
+
+
 }

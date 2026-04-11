@@ -1,72 +1,35 @@
 package onlineexam.ui.student;
 
-import onlineexam.util.DBConnection;
-
+import java.awt.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.sql.*;
+import onlineexam.ui.LoginFrame;
 
 public class StudentResultsFrame extends JFrame {
 
-    JTable table;
-    DefaultTableModel model;
+public StudentResultsFrame(int studentId){
 
-    int studentId;
+    setTitle("My Results");
+    setSize(600,400);
+    setLocationRelativeTo(null);
+    setLayout(new BorderLayout());
 
-    public StudentResultsFrame(int studentId){
+    JPanel top = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logout = new JButton("Logout");
 
-        this.studentId = studentId;
+    logout.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
 
-        setTitle("My Exam Results");
-        setSize(600,400);
-        setLocationRelativeTo(null);
+    top.add(logout);
+    add(top, BorderLayout.NORTH);
 
-        model = new DefaultTableModel();
+    JTable table = new JTable(new DefaultTableModel());
+    add(new JScrollPane(table), BorderLayout.CENTER);
 
-        model.addColumn("Exam ID");
-        model.addColumn("Score");
-        model.addColumn("Total Marks");
-        model.addColumn("Status");
-        model.addColumn("Submitted At");
+    setVisible(true);
+}
 
-        table = new JTable(model);
 
-        add(new JScrollPane(table), BorderLayout.CENTER);
-
-        loadResults();
-
-        setVisible(true);
-    }
-
-    private void loadResults(){
-
-        try{
-
-            Connection conn = DBConnection.getConnection();
-
-            PreparedStatement ps = conn.prepareStatement(
-                    "SELECT exam_id, score, total_marks, status, submitted_at FROM results WHERE student_id=?"
-            );
-
-            ps.setInt(1, studentId);
-
-            ResultSet rs = ps.executeQuery();
-
-            while(rs.next()){
-
-                model.addRow(new Object[]{
-                        rs.getInt("exam_id"),
-                        rs.getInt("score"),
-                        rs.getInt("total_marks"),
-                        rs.getString("status"),
-                        rs.getTimestamp("submitted_at")
-                });
-
-            }
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
 }

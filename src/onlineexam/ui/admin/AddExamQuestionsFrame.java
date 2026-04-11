@@ -1,83 +1,82 @@
 package onlineexam.ui.admin;
 
-import onlineexam.util.DBConnection;
-
-import javax.swing.*;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.sql.*;
+import javax.swing.*;
+import onlineexam.ui.LoginFrame;
+import onlineexam.util.DBConnection;
 
 public class AddExamQuestionsFrame extends JFrame {
 
-    JTextField questionField, aField, bField, cField, dField, answerField;
-    int examId;
 
-    public AddExamQuestionsFrame(int examId) {
+JTextField q,a,b,c,d,ans;
+int examId;
 
-        this.examId = examId;
+public AddExamQuestionsFrame(int examId) {
 
-        setTitle("Add Questions to Exam " + examId);
-        setSize(500,400);
-        setLocationRelativeTo(null);
-        setLayout(new GridLayout(7,2,10,10));
+    this.examId = examId;
 
-        questionField = new JTextField();
-        aField = new JTextField();
-        bField = new JTextField();
-        cField = new JTextField();
-        dField = new JTextField();
-        answerField = new JTextField();
+    setTitle("Add Questions");
+    setSize(500,400);
+    setLocationRelativeTo(null);
+    setLayout(new BorderLayout());
 
-        JButton addBtn = new JButton("Add Question");
+    JPanel top = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logout = new JButton("Logout");
 
-        add(new JLabel("Question:"));
-        add(questionField);
+    logout.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
 
-        add(new JLabel("Option A:"));
-        add(aField);
+    top.add(logout);
+    add(top, BorderLayout.NORTH);
 
-        add(new JLabel("Option B:"));
-        add(bField);
+    JPanel panel = new JPanel(new GridLayout(7,2,10,10));
 
-        add(new JLabel("Option C:"));
-        add(cField);
+    q=new JTextField(); a=new JTextField(); b=new JTextField();
+    c=new JTextField(); d=new JTextField(); ans=new JTextField();
 
-        add(new JLabel("Option D:"));
-        add(dField);
+    JButton addBtn=new JButton("Add");
 
-        add(new JLabel("Correct Answer:"));
-        add(answerField);
+    panel.add(new JLabel("Question")); panel.add(q);
+    panel.add(new JLabel("A")); panel.add(a);
+    panel.add(new JLabel("B")); panel.add(b);
+    panel.add(new JLabel("C")); panel.add(c);
+    panel.add(new JLabel("D")); panel.add(d);
+    panel.add(new JLabel("Answer")); panel.add(ans);
+    panel.add(new JLabel()); panel.add(addBtn);
 
-        add(new JLabel());
-        add(addBtn);
+    add(panel, BorderLayout.CENTER);
 
-        addBtn.addActionListener(e -> addQuestion());
+    addBtn.addActionListener(e->addQ());
 
-        setVisible(true);
-    }
+    setVisible(true);
+}
 
-    private void addQuestion() {
+private void addQ(){
+    try(Connection conn=DBConnection.getConnection()){
 
-        String sql = "INSERT INTO questions (exam_id, question_text, option_a, option_b, option_c, option_d, correct_answer) VALUES (?,?,?,?,?,?,?)";
+        PreparedStatement ps=conn.prepareStatement(
+            "INSERT INTO questions VALUES(NULL,?,?,?,?,?,?,?)"
+        );
 
-        try(Connection conn = DBConnection.getConnection()) {
+        ps.setInt(1,examId);
+        ps.setString(2,q.getText());
+        ps.setString(3,a.getText());
+        ps.setString(4,b.getText());
+        ps.setString(5,c.getText());
+        ps.setString(6,d.getText());
+        ps.setString(7,ans.getText());
 
-            PreparedStatement stmt = conn.prepareStatement(sql);
+        ps.executeUpdate();
+        JOptionPane.showMessageDialog(this,"Added");
 
-            stmt.setInt(1, examId);
-            stmt.setString(2, questionField.getText());
-            stmt.setString(3, aField.getText());
-            stmt.setString(4, bField.getText());
-            stmt.setString(5, cField.getText());
-            stmt.setString(6, dField.getText());
-            stmt.setString(7, answerField.getText());
+        q.setText(""); a.setText(""); b.setText("");
+        c.setText(""); d.setText(""); ans.setText("");
 
-            stmt.executeUpdate();
+    }catch(Exception e){ e.printStackTrace(); }
+}
 
-            JOptionPane.showMessageDialog(this,"Question Added!");
 
-        } catch(Exception ex) {
-            ex.printStackTrace();
-        }
-    }
 }

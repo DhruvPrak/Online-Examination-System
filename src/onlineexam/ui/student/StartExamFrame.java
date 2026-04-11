@@ -1,99 +1,175 @@
 package onlineexam.ui.student;
 
-import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-
+import javax.swing.*;
+import onlineexam.ui.LoginFrame;
 import onlineexam.util.DBConnection;
 
 public class StartExamFrame extends JFrame {
 
-    private int studentId;
-    private JComboBox<String> examDropdown;
-    private JButton startButton;
+private int studentId;
+private JComboBox<String> examDropdown;
+private JButton startButton;
 
-    private Map<String, Integer> examMap = new HashMap<>();
+private Map<String, Integer> examMap = new HashMap<>();
 
-    public StartExamFrame(int studentId) {
+public StartExamFrame(int studentId) {
 
-        this.studentId = studentId;
+    this.studentId = studentId;
 
-        setTitle("Start Exam");
-        setSize(400,200);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    setTitle("Start Exam");
+    setSize(400,250);
+    setLocationRelativeTo(null);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        initUI();
-        loadExams();
+    setLayout(new BorderLayout());
 
-        setVisible(true);
+    initUI();
+    loadExams();
+
+    setVisible(true);
+}
+
+private void initUI() {
+
+    JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logoutBtn = new JButton("Logout");
+
+    logoutBtn.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
+
+    topPanel.add(logoutBtn);
+    add(topPanel, BorderLayout.NORTH);
+
+    JPanel panel = new JPanel(new GridLayout(3,1,10,10));
+    panel.setBorder(BorderFactory.createEmptyBorder(20,40,20,40));
+
+    JLabel label = new JLabel("Select Exam", JLabel.CENTER);
+
+    examDropdown = new JComboBox<>();
+
+    startButton = new JButton("Start Exam");
+    startButton.setEnabled(false);
+
+    startButton.addActionListener(e -> startExam());
+
+    panel.add(label);
+    panel.add(examDropdown);
+    panel.add(startButton);
+
+    add(panel, BorderLayout.CENTER);
+}
+
+private void checkExamStatus() {
+
+    String selectedExam = (String) examDropdown.getSelectedItem();
+    if(selectedExam == null) return;
+
+    int examId = examMap.get(selectedExam);
+
+    try(Connection conn = DBConnection.getConnection()) {
+
+        PreparedStatement ps = conn.prepareStatement(
+            "SELECT status FROM exams WHERE id=?"
+        );
+        ps.setInt(1, examId);
+
+        ResultSet rs = ps.executeQuery();
+
+        if(rs.next()) {
+            String status = rs.getString("status");
+            startButton.setEnabled("STARTED".equalsIgnoreCase(status));
+        }
+
+    } catch(Exception e) {
+        e.printStackTrace();
     }
+}
 
-    private void initUI() {
+private void loadExams() {
 
-        JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(3,1,10,10));
-        panel.setBorder(BorderFactory.createEmptyBorder(20,40,20,40));
+    try(Connection conn = DBConnection.getConnection()) {
 
-        JLabel label = new JLabel("Select Exam", JLabel.CENTER);
+        PreparedStatement ps = conn.prepareStatement(
+            "SELECT id, exam_title FROM exams"
+        );
 
-        examDropdown = new JComboBox<>();
+        ResultSet rs = ps.executeQuery();
 
-        startButton = new JButton("Start Exam");
+        while(rs.next()) {
+            String title = rs.getString("exam_title");
+            examDropdown.addItem(title);
+            examMap.put(title, rs.getInt("id"));
+        }
 
-        startButton.addActionListener((ActionEvent e) -> startExam());
+        examDropdown.addActionListener(e -> checkExamStatus());
 
-        panel.add(label);
-        panel.add(examDropdown);
-        panel.add(startButton);
+        if(examDropdown.getItemCount() > 0) {
+            examDropdown.setSelectedIndex(0);
+            checkExamStatus();
+        }
 
-        add(panel);
+    } catch(Exception e) {
+        e.printStackTrace();
     }
+}
 
-    private void loadExams() {
+private void startExam() {
 
-        try {
+    String selectedExam = (String) examDropdown.getSelectedItem();
+    if(selectedExam == null) return;
 
-            Connection conn = DBConnection.getConnection();
+    int examId = examMap.get(selectedExam);
 
-            String query = "SELECT id, exam_title FROM exams";
+    try(Connection conn = DBConnection.getConnection()) {
 
-            PreparedStatement ps = conn.prepareStatement(query);
-            ResultSet rs = ps.executeQuery();
+        PreparedStatement ps1 = conn.prepareStatement(
+            "SELECT exam_status FROM users WHERE id=?"
+        );
+        ps1.setInt(1, studentId);
 
-            while(rs.next()) {
+        ResultSet rs1 = ps1.executeQuery();
 
-                int examId = rs.getInt("id");
-                String title = rs.getString("exam_title");
+        if(rs1.next()){
+            String status = rs1.getString("exam_status");
 
-                examDropdown.addItem(title);
-                examMap.put(title, examId);
+            if("BANNED".equalsIgnoreCase(status)){
+                JOptionPane.showMessageDialog(this,"You are banned!");
+                return;
             }
 
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void startExam() {
-
-        String selectedExam = (String) examDropdown.getSelectedItem();
-
-        if(selectedExam == null) {
-
-            JOptionPane.showMessageDialog(this, "No exam available.");
-            return;
+            if(!"APPROVED".equalsIgnoreCase(status) && !"IN_EXAM".equalsIgnoreCase(status)){
+                JOptionPane.showMessageDialog(this,"Not approved!");
+                return;
+            }
         }
 
-        int examId = examMap.get(selectedExam);
+        PreparedStatement ps2 = conn.prepareStatement(
+            "SELECT status FROM exams WHERE id=?"
+        );
+        ps2.setInt(1, examId);
 
-        dispose();
+        ResultSet rs2 = ps2.executeQuery();
 
-        new ExamFrame(studentId, examId);
+        if(rs2.next()){
+            if(!"STARTED".equalsIgnoreCase(rs2.getString("status"))){
+                JOptionPane.showMessageDialog(this,"Exam not started!");
+                return;
+            }
+        }
+
+    } catch(Exception e) {
+        e.printStackTrace();
+        return;
     }
+
+    dispose();
+    new ExamFrame(studentId, examId);
+}
+
 }

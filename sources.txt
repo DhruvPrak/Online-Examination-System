@@ -7,3 +7,11 @@
 .\src\onlineexam\ui\ViewQuestionsFrame.java
 .\src\onlineexam\util\DBConnection.java
 .\src\onlineexam\util\DBTest.java
+
+
+cd "C:\Users\HP VICTUS\OneDrive\Desktop\Coding\OnlineExaminationSystem\OnlineExaminationSystem"
+cd src
+del /s *.class
+for /R %f in (*.java) do javac -cp ".;../lib/mysql-connector-j-9.6.0.jar" "%f"
+cd ..
+java -cp ".;src;lib/mysql-connector-j-9.6.0.jar" onlineexam.main.Main

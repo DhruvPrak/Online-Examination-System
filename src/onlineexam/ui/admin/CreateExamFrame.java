@@ -1,74 +1,96 @@
 package onlineexam.ui.admin;
 
-import onlineexam.util.DBConnection;
-
-import javax.swing.*;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import javax.swing.*;
+import onlineexam.ui.LoginFrame;
+import onlineexam.util.DBConnection;
 
 public class CreateExamFrame extends JFrame {
 
-    JTextField examIdField;
-    JTextField titleField;
-    JTextField questionCountField;
 
-    public CreateExamFrame() {
+JTextField examIdField, titleField, questionCountField, durationField;
 
-        setTitle("Create Exam");
-        setSize(400,250);
-        setLocationRelativeTo(null);
-        setLayout(new GridLayout(4,2,10,10));
+public CreateExamFrame() {
 
-        examIdField = new JTextField();
-        titleField = new JTextField();
-        questionCountField = new JTextField();
+    setTitle("Create Exam");
+    setSize(400,300);
+    setLocationRelativeTo(null);
 
-        JButton createBtn = new JButton("Create Exam");
+    setLayout(new BorderLayout());
 
-        add(new JLabel("Exam ID:"));
-        add(examIdField);
+    JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    JButton logoutBtn = new JButton("Logout");
 
-        add(new JLabel("Exam Title:"));
-        add(titleField);
+    logoutBtn.addActionListener(e -> {
+        dispose();
+        new LoginFrame();
+    });
 
-        add(new JLabel("Questions in Exam:"));
-        add(questionCountField);
+    topPanel.add(logoutBtn);
+    add(topPanel, BorderLayout.NORTH);
 
-        add(new JLabel());
-        add(createBtn);
+    JPanel panel = new JPanel(new GridLayout(5,2,10,10));
 
-        createBtn.addActionListener(e -> createExam());
+    examIdField = new JTextField();
+    titleField = new JTextField();
+    questionCountField = new JTextField();
+    durationField = new JTextField();
 
-        setVisible(true);
-    }
+    JButton createBtn = new JButton("Create Exam");
 
-    private void createExam() {
+    panel.add(new JLabel("Exam ID:"));
+    panel.add(examIdField);
 
-    String sql = "INSERT INTO exams (id, exam_title, total_questions, questions_to_display) VALUES (?,?,?,?)";
+    panel.add(new JLabel("Exam Title:"));
+    panel.add(titleField);
+
+    panel.add(new JLabel("Questions:"));
+    panel.add(questionCountField);
+
+    panel.add(new JLabel("Duration (min):"));
+    panel.add(durationField);
+
+    panel.add(new JLabel());
+    panel.add(createBtn);
+
+    add(panel, BorderLayout.CENTER);
+
+    createBtn.addActionListener(e -> createExam());
+
+    setVisible(true);
+}
+
+private void createExam() {
 
     try(Connection conn = DBConnection.getConnection()) {
 
-        PreparedStatement stmt = conn.prepareStatement(sql);
+        PreparedStatement stmt = conn.prepareStatement(
+            "INSERT INTO exams (id, exam_title, total_questions, questions_to_display, duration) VALUES (?,?,?,?,?)"
+        );
 
         int examId = Integer.parseInt(examIdField.getText());
-        int questionCount = Integer.parseInt(questionCountField.getText());
+        int q = Integer.parseInt(questionCountField.getText());
+        int duration = Integer.parseInt(durationField.getText()) * 60;
 
         stmt.setInt(1, examId);
         stmt.setString(2, titleField.getText());
-        stmt.setInt(3, questionCount);
-        stmt.setInt(4, questionCount);
+        stmt.setInt(3, q);
+        stmt.setInt(4, q);
+        stmt.setInt(5, duration);
 
         stmt.executeUpdate();
 
         JOptionPane.showMessageDialog(this,"Exam Created!");
 
         new AddExamQuestionsFrame(examId);
-
         dispose();
 
-    } catch(Exception ex) {
-        ex.printStackTrace();
+    } catch(Exception e) {
+        e.printStackTrace();
     }
 }
+
+
 }
