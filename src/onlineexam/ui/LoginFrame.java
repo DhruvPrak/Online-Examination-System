@@ -1,15 +1,15 @@
 package onlineexam.ui;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.*;
-import onlineexam.util.DBConnection;
 import onlineexam.ui.admin.AdminFrame;
 import onlineexam.ui.examiner.ExaminerFrame;
 import onlineexam.ui.student.StudentFrame;
+import onlineexam.util.DBConnection;
+import onlineexam.util.PasswordUtil;
 
 public class LoginFrame extends JFrame {
 
@@ -20,110 +20,122 @@ public class LoginFrame extends JFrame {
     public LoginFrame() {
 
         setTitle("Online Examination System - Login");
-        setSize(400, 250);
+        setSize(450, 300);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(4, 2, 10, 10));
-        ((JComponent)getContentPane()).setBorder(BorderFactory.createEmptyBorder(15,15,15,15));
+        setLayout(new BorderLayout());
 
-        JLabel userLabel = new JLabel("Username:");
-        JLabel passLabel = new JLabel("Password:");
-        JLabel roleLabel = new JLabel("Role:");
+        JPanel panel = new JPanel(new GridLayout(4, 2, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         usernameField = new JTextField();
         passwordField = new JPasswordField();
 
-        roleBox = new JComboBox<>();
-        roleBox.addItem("ADMIN");
-        roleBox.addItem("EXAMINER");
-        roleBox.addItem("STUDENT");
+        roleBox = new JComboBox<>(new String[]{
+                "ADMIN",
+                "EXAMINER",
+                "STUDENT"
+        });
 
-        JButton loginBtn = new JButton("Login");
-        loginBtn.addActionListener(this::loginUser);
+        JButton loginButton = new JButton("Login");
 
-        add(userLabel);
-        add(usernameField);
-        add(passLabel);
-        add(passwordField);
-        add(roleLabel);
-        add(roleBox);
-        add(new JLabel());
-        add(loginBtn);
+        panel.add(new JLabel("Username:"));
+        panel.add(usernameField);
+
+        panel.add(new JLabel("Password:"));
+        panel.add(passwordField);
+
+        panel.add(new JLabel("Role:"));
+        panel.add(roleBox);
+
+        panel.add(new JLabel());
+        panel.add(loginButton);
+
+        add(panel, BorderLayout.CENTER);
+
+        loginButton.addActionListener(e -> login());
 
         setVisible(true);
     }
 
-    private void loginUser(ActionEvent e) {
+    private void login() {
 
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword()).trim();
-        String role = roleBox.getSelectedItem().toString();
+        String selectedRole = roleBox.getSelectedItem().toString();
 
         if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please enter username and password.");
+            JOptionPane.showMessageDialog(this,
+                    "Please fill all fields.");
             return;
         }
-
-        String sql = "SELECT id, role FROM users WHERE username=? AND password=?";
 
         try (Connection conn = DBConnection.getConnection()) {
 
             if (conn == null) {
-                JOptionPane.showMessageDialog(this, "Database connection failed.");
+                JOptionPane.showMessageDialog(this,
+                        "Database connection failed.");
                 return;
             }
 
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, username);
-                stmt.setString(2, password);
+            // Fetch user by username only
+            PreparedStatement ps = conn.prepareStatement(
+                    "SELECT id, role, password FROM users WHERE username=?"
+            );
 
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
+            ps.setString(1, username);
 
-                        int userId = rs.getInt("id");
-                        String dbRole = rs.getString("role");
+            ResultSet rs = ps.executeQuery();
 
-                        if (role.equalsIgnoreCase(dbRole)) {
+            if (rs.next()) {
 
-                            JOptionPane.showMessageDialog(this, "Login Successful!");
+                int userId = rs.getInt("id");
+                String dbRole = rs.getString("role");
+                String hashedPassword = rs.getString("password");
 
-                            openDashboard(role, userId);
-                            dispose();
+                // Verify password using BCrypt
+                boolean passwordMatched = PasswordUtil.checkPassword(
+                        password,
+                        hashedPassword
+                );
 
-                        } else {
-                            JOptionPane.showMessageDialog(this, "Incorrect role selected!");
-                        }
-
-                    } else {
-                        JOptionPane.showMessageDialog(this, "Invalid username or password!");
-                    }
+                if (!passwordMatched) {
+                    JOptionPane.showMessageDialog(this,
+                            "Invalid password!");
+                    return;
                 }
+
+                // Verify selected role
+                if (!dbRole.equalsIgnoreCase(selectedRole)) {
+                    JOptionPane.showMessageDialog(this,
+                            "Incorrect role selected!");
+                    return;
+                }
+
+                JOptionPane.showMessageDialog(this,
+                        "Login Successful!");
+
+                dispose();
+
+                if (selectedRole.equalsIgnoreCase("ADMIN")) {
+                    new AdminFrame();
+                }
+                else if (selectedRole.equalsIgnoreCase("EXAMINER")) {
+                    new ExaminerFrame(userId);
+                }
+                else if (selectedRole.equalsIgnoreCase("STUDENT")) {
+                    new StudentFrame(userId);
+                }
+
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "User not found!");
             }
 
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage());
-        }
-    }
-
-    private void openDashboard(String role, int userId) {
-
-        switch (role) {
-
-            case "ADMIN":
-                new AdminFrame();
-                break;
-
-            case "EXAMINER":
-                new ExaminerFrame(userId);
-                break;
-
-            case "STUDENT":
-                new StudentFrame(userId);
-                break;
-
-            default:
-                JOptionPane.showMessageDialog(this, "Unknown role.");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Login Error!");
+            e.printStackTrace();
         }
     }
 }

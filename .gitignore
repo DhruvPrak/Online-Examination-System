@@ -1,3 +1,5 @@
 *.class
 bin/
 .vscode/
+*.log
+.idea/

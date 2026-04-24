@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>C:\Users\HP VICTUS\OneDrive\Desktop\Coding\OnlineExaminationSystem\OnlineExaminationSystem\app\OnlineExamSystem.jar</jar>
+  <outfile>C:\Users\HP VICTUS\OneDrive\Desktop\Coding\OnlineExaminationSystem\OnlineExaminationSystem\app\OnlineExamSystem.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl></downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon></icon>
+  <classPath>
+    <mainClass>onlineexam.main.Main</mainClass>
+    <cp>C:\Users\HP VICTUS\OneDrive\Desktop\Coding\OnlineExaminationSystem\OnlineExaminationSystem\lib\mysql-connector-j-9.6.0.jar</cp>
+  </classPath>
+  <jre>
+    <path>%JAVA_HOME%;%PATH%</path>
+    <requiresJdk>false</requiresJdk>
+    <requires64Bit>true</requires64Bit>
+    <minVersion>17</minVersion>
+    <maxVersion></maxVersion>
+  </jre>
+</launch4jConfig>
