@@ -20,12 +20,13 @@ public class ExamFrame extends JFrame {
     private ButtonGroup optionsGroup;
 
     private javax.swing.Timer timer;
-    private int timeLeft = 600;
+    private int timeLeft;
 
     private List<Map<String, String>> questions = new ArrayList<>();
     private Map<Integer, String> answers = new HashMap<>();
 
     private int currentQuestionIndex = 0;
+    private int warningCount = 0;
 
     public ExamFrame(int studentId, int examId) {
 
@@ -35,10 +36,34 @@ public class ExamFrame extends JFrame {
         setTitle("Exam");
         setSize(750, 450);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        addWindowFocusListener(new java.awt.event.WindowAdapter() {
+    @Override
+    public void windowLostFocus(java.awt.event.WindowEvent e) {
+
+        warningCount++;
+
+        if (warningCount >= 3) {
+            JOptionPane.showMessageDialog(
+                ExamFrame.this,
+                "You switched away from exam window 3 times.\nExam will be auto-submitted."
+            );
+
+            submitExam();
+            return;
+        }
+
+        JOptionPane.showMessageDialog(
+            ExamFrame.this,
+            "Warning!\nYou switched away from exam window.\nWarning: "
+                    + warningCount + "/3"
+        );
+    }
+});
+
         setLayout(new BorderLayout());
 
         initUI();
+        loadExamDuration();
         loadQuestions();
 
         if (questions.size() > 0) {
@@ -98,40 +123,27 @@ public class ExamFrame extends JFrame {
 
         add(bottom, BorderLayout.SOUTH);
     }
-
-    /*
-     * RANDOM QUESTION LOADING LOGIC
-     *
-     * Example:
-     * Admin creates exam:
-     * total_questions = 20
-     * questions_to_display = 10
-     *
-     * Student sees random 10 questions from those 20
-     */
     private void loadQuestions() {
 
         try (Connection conn = DBConnection.getConnection()) {
 
-            // First get how many questions should be shown to student
             PreparedStatement examStmt = conn.prepareStatement(
                     "SELECT questions_to_display FROM exams WHERE id=?");
 
             examStmt.setInt(1, examId);
             ResultSet examRs = examStmt.executeQuery();
 
-            int questionsToDisplay = 10; // fallback default
+            int questionsToDisplay = 10;
 
             if (examRs.next()) {
                 questionsToDisplay = examRs.getInt("questions_to_display");
             }
 
-            // Randomized question selection
             PreparedStatement ps = conn.prepareStatement(
                     "SELECT * FROM questions " +
-                    "WHERE exam_id=? " +
-                    "ORDER BY RAND() " +
-                    "LIMIT ?");
+                            "WHERE exam_id=? " +
+                            "ORDER BY RAND() " +
+                            "LIMIT ?");
 
             ps.setInt(1, examId);
             ps.setInt(2, questionsToDisplay);
@@ -207,6 +219,36 @@ public class ExamFrame extends JFrame {
             displayQuestion();
         }
     }
+    private void loadExamDuration() {
+
+    try (Connection conn = DBConnection.getConnection()) {
+
+        PreparedStatement ps = conn.prepareStatement(
+            "SELECT duration FROM exams WHERE id=?"
+        );
+
+        ps.setInt(1, examId);
+
+        ResultSet rs = ps.executeQuery();
+
+        if (rs.next()) {
+            timeLeft = rs.getInt("duration");
+        } else {
+            timeLeft = 600;
+        }
+
+        int min = timeLeft / 60;
+        int sec = timeLeft % 60;
+
+        timerLabel.setText(
+            "Time Left: " + String.format("%02d:%02d", min, sec)
+        );
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        timeLeft = 600;
+    }
+}
 
     private void startTimer() {
 
@@ -247,20 +289,48 @@ public class ExamFrame extends JFrame {
             }
         }
 
+        int totalMarks = questions.size();
+
+        double percentage = ((double) correct / totalMarks) * 100;
+
+        String grade;
+        String resultStatus;
+
+        if (percentage >= 80) {
+            grade = "A";
+            resultStatus = "PASS";
+        } else if (percentage >= 60) {
+            grade = "B";
+            resultStatus = "PASS";
+        } else if (percentage >= 40) {
+            grade = "C";
+            resultStatus = "PASS";
+        } else {
+            grade = "F";
+            resultStatus = "FAIL";
+        }
+
         try (Connection conn = DBConnection.getConnection()) {
 
             PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO results (student_id, exam_id, score, total_marks) VALUES (?, ?, ?, ?)");
+                    "INSERT INTO results " +
+                            "(student_id, exam_id, score, total_marks, percentage, grade, result_status) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
 
             ps.setInt(1, studentId);
             ps.setInt(2, examId);
             ps.setInt(3, correct);
-            ps.setInt(4, questions.size());
+            ps.setInt(4, totalMarks);
+            ps.setDouble(5, percentage);
+            ps.setString(6, grade);
+            ps.setString(7, resultStatus);
 
             ps.executeUpdate();
 
             PreparedStatement ps2 = conn.prepareStatement(
-                    "UPDATE users SET exam_status='COMPLETED' WHERE id=?");
+                    "UPDATE users SET exam_status='COMPLETED' WHERE id=?"
+            );
 
             ps2.setInt(1, studentId);
             ps2.executeUpdate();
@@ -269,12 +339,18 @@ public class ExamFrame extends JFrame {
             e.printStackTrace();
         }
 
-        JOptionPane.showMessageDialog(this,
-                "Exam Submitted!\nScore: " + correct + "/" + questions.size());
-
-        System.out.println("Exam submitted with score: " + correct);
+        JOptionPane.showMessageDialog(
+                this,
+                "Exam Submitted!\n\n" +
+                        "Score: " + correct + "/" + totalMarks + "\n" +
+                        "Percentage: " + String.format("%.2f", percentage) + "%\n" +
+                        "Grade: " + grade + "\n" +
+                        "Result: " + resultStatus
+        );
 
         dispose();
         new StudentFrame(studentId);
+
+        System.out.println("Exam submitted with score: " + correct);
     }
 }
