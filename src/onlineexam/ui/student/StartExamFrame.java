@@ -21,10 +21,10 @@ public class StartExamFrame extends JFrame {
         this.studentId = studentId;
 
         setTitle("Start Exam");
-        setSize(400, 250);
+        setSize(600, 350);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(10, 10));
 
         initUI();
         loadExams();
@@ -34,186 +34,131 @@ public class StartExamFrame extends JFrame {
 
     private void initUI() {
 
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBorder(
+                BorderFactory.createEmptyBorder(15, 20, 10, 20)
+        );
+
+        JLabel titleLabel = new JLabel(
+                "START EXAM PORTAL",
+                JLabel.CENTER
+        );
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+
         JButton logoutBtn = new JButton("Logout");
+        logoutBtn.setFont(new Font("Arial", Font.BOLD, 14));
 
         logoutBtn.addActionListener(e -> {
             dispose();
             new LoginFrame();
         });
 
-        topPanel.add(logoutBtn);
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        logoutPanel.add(logoutBtn);
+
+        topPanel.add(titleLabel, BorderLayout.CENTER);
+        topPanel.add(logoutPanel, BorderLayout.EAST);
+
         add(topPanel, BorderLayout.NORTH);
 
-        JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
+        JPanel centerPanel = new JPanel(new GridBagLayout());
 
-        JLabel label = new JLabel("Select Exam", JLabel.CENTER);
+        JPanel formPanel = new JPanel(new GridLayout(4, 1, 15, 15));
+        formPanel.setBorder(
+                BorderFactory.createTitledBorder("Exam Selection")
+        );
+        formPanel.setPreferredSize(new Dimension(400, 200));
+
+        JLabel selectLabel = new JLabel(
+                "Select Available Exam",
+                JLabel.CENTER
+        );
+        selectLabel.setFont(new Font("Arial", Font.BOLD, 16));
 
         examDropdown = new JComboBox<>();
 
-        startButton = new JButton("Start Exam");
+        startButton = new JButton("Start Selected Exam");
         startButton.setEnabled(false);
+        startButton.setFont(new Font("Arial", Font.BOLD, 15));
+
+        JButton backButton = new JButton("Back");
+        backButton.setFont(new Font("Arial", Font.BOLD, 15));
 
         startButton.addActionListener(e -> startExam());
 
-        panel.add(label);
-        panel.add(examDropdown);
-        panel.add(startButton);
+        backButton.addActionListener(e -> {
+            dispose();
+            new StudentFrame(studentId);
+        });
 
-        add(panel, BorderLayout.CENTER);
-    }
+        formPanel.add(selectLabel);
+        formPanel.add(examDropdown);
+        formPanel.add(startButton);
+        formPanel.add(backButton);
 
-    private void checkExamStatus() {
+        centerPanel.add(formPanel);
 
-        String selectedExam = (String) examDropdown.getSelectedItem();
+        add(centerPanel, BorderLayout.CENTER);
 
-        if (selectedExam == null) {
-            return;
-        }
+        JPanel bottomPanel = new JPanel();
 
-        int examId = examMap.get(selectedExam);
+        JLabel footer = new JLabel(
+                "Exam can only start after examiner approval"
+        );
+        footer.setFont(new Font("Arial", Font.ITALIC, 13));
 
-        try (Connection conn = DBConnection.getConnection()) {
+        bottomPanel.add(footer);
 
-            PreparedStatement ps = conn.prepareStatement(
-                "SELECT status FROM exams WHERE id=?"
-            );
-
-            ps.setInt(1, examId);
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                String status = rs.getString("status");
-
-                startButton.setEnabled(
-                    "STARTED".equalsIgnoreCase(status)
-                );
-            }
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                "Error checking exam status.");
-            e.printStackTrace();
-        }
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
     private void loadExams() {
 
-        try (Connection conn = DBConnection.getConnection()) {
+    try (Connection conn = DBConnection.getConnection()) {
 
-            PreparedStatement ps = conn.prepareStatement(
+        PreparedStatement ps = conn.prepareStatement(
                 "SELECT id, exam_title FROM exams"
-            );
+        );
 
-            ResultSet rs = ps.executeQuery();
+        ResultSet rs = ps.executeQuery();
 
-            while (rs.next()) {
-                String title = rs.getString("exam_title");
+        while (rs.next()) {
+            String title = rs.getString("exam_title");
 
-                examDropdown.addItem(title);
-                examMap.put(title, rs.getInt("id"));
-            }
-
-            examDropdown.addActionListener(e -> checkExamStatus());
-
-            if (examDropdown.getItemCount() > 0) {
-                examDropdown.setSelectedIndex(0);
-                checkExamStatus();
-            }
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                "Error loading exams.");
-            e.printStackTrace();
+            examDropdown.addItem(title);
+            examMap.put(title, rs.getInt("id"));
         }
+
+        if (examDropdown.getItemCount() > 0) {
+            startButton.setEnabled(true);
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Error loading exams."
+        );
+    }
+}
+
+private void startExam() {
+
+    String selectedExam =
+            (String) examDropdown.getSelectedItem();
+
+    if (selectedExam == null) {
+        JOptionPane.showMessageDialog(
+                this,
+                "Please select an exam."
+        );
+        return;
     }
 
-    private void startExam() {
+    int examId = examMap.get(selectedExam);
 
-        String selectedExam = (String) examDropdown.getSelectedItem();
-
-        if (selectedExam == null) {
-            return;
-        }
-
-        int examId = examMap.get(selectedExam);
-
-        try (Connection conn = DBConnection.getConnection()) {
-
-            PreparedStatement checkResult = conn.prepareStatement(
-                "SELECT * FROM results WHERE student_id=? AND exam_id=?"
-            );
-
-            checkResult.setInt(1, studentId);
-            checkResult.setInt(2, examId);
-
-            ResultSet resultSet = checkResult.executeQuery();
-
-            if (resultSet.next()) {
-                JOptionPane.showMessageDialog(this,
-                    "You have already attempted this exam.\nRe-attempt is not allowed.");
-                return;
-            }
-            PreparedStatement ps1 = conn.prepareStatement(
-                "SELECT exam_status FROM users WHERE id=?"
-            );
-
-            ps1.setInt(1, studentId);
-
-            ResultSet rs1 = ps1.executeQuery();
-
-            if (rs1.next()) {
-
-                String status = rs1.getString("exam_status");
-
-                if ("BANNED".equalsIgnoreCase(status)) {
-                    JOptionPane.showMessageDialog(this,
-                        "You are banned!");
-                    return;
-                }
-
-                if (!"APPROVED".equalsIgnoreCase(status)
-                        && !"IN_EXAM".equalsIgnoreCase(status)) {
-
-                    JOptionPane.showMessageDialog(this,
-                        "You are not approved for exam!");
-                    return;
-                }
-            }
-            PreparedStatement ps2 = conn.prepareStatement(
-                "SELECT status FROM exams WHERE id=?"
-            );
-
-            ps2.setInt(1, examId);
-
-            ResultSet rs2 = ps2.executeQuery();
-
-            if (rs2.next()) {
-
-                String examStatus = rs2.getString("status");
-
-                if (!"STARTED".equalsIgnoreCase(examStatus)) {
-                    JOptionPane.showMessageDialog(this,
-                        "Exam has not started yet!");
-                    return;
-                }
-            }
-            PreparedStatement ps3 = conn.prepareStatement(
-                "UPDATE users SET exam_status='IN_EXAM' WHERE id=?"
-            );
-
-            ps3.setInt(1, studentId);
-            ps3.executeUpdate();
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                "Error while starting exam.");
-            e.printStackTrace();
-            return;
-        }
-        dispose();
-        new ExamFrame(studentId, examId);
-    }
+    dispose();
+    new ExamFrame(studentId, examId);
+}
 }

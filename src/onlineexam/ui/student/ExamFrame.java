@@ -80,49 +80,91 @@ public class ExamFrame extends JFrame {
 
     private void initUI() {
 
-        timerLabel = new JLabel("Time Left: 10:00", JLabel.RIGHT);
-        add(timerLabel, BorderLayout.NORTH);
+    setLayout(new BorderLayout(10, 10));
 
-        JPanel center = new JPanel(new GridLayout(5, 1, 10, 10));
-        center.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    JPanel topPanel = new JPanel(new BorderLayout());
+    topPanel.setBorder(
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+    );
 
-        questionLabel = new JLabel();
+    JLabel examTitle = new JLabel(
+            "ONLINE EXAMINATION",
+            JLabel.LEFT
+    );
+    examTitle.setFont(new Font("Arial", Font.BOLD, 18));
 
-        optionA = new JRadioButton();
-        optionB = new JRadioButton();
-        optionC = new JRadioButton();
-        optionD = new JRadioButton();
+    timerLabel = new JLabel("Time Left: 10:00", JLabel.RIGHT);
+    timerLabel.setFont(new Font("Arial", Font.BOLD, 16));
 
-        optionsGroup = new ButtonGroup();
-        optionsGroup.add(optionA);
-        optionsGroup.add(optionB);
-        optionsGroup.add(optionC);
-        optionsGroup.add(optionD);
+    topPanel.add(examTitle, BorderLayout.WEST);
+    topPanel.add(timerLabel, BorderLayout.EAST);
 
-        center.add(questionLabel);
-        center.add(optionA);
-        center.add(optionB);
-        center.add(optionC);
-        center.add(optionD);
+    add(topPanel, BorderLayout.NORTH);
 
-        add(center, BorderLayout.CENTER);
+    JPanel questionPanel = new JPanel(new BorderLayout(10, 10));
+    questionPanel.setBorder(
+            BorderFactory.createTitledBorder("Question Panel")
+    );
 
-        JPanel bottom = new JPanel();
+    questionLabel = new JLabel();
+    questionLabel.setFont(new Font("Arial", Font.BOLD, 16));
+    questionLabel.setBorder(
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+    );
 
-        JButton prev = new JButton("Previous");
-        JButton next = new JButton("Next");
-        JButton submit = new JButton("Submit");
+    JPanel optionsPanel = new JPanel(new GridLayout(4, 1, 12, 12));
+    optionsPanel.setBorder(
+            BorderFactory.createEmptyBorder(10, 20, 10, 20)
+    );
 
-        prev.addActionListener(e -> previousQuestion());
-        next.addActionListener(e -> nextQuestion());
-        submit.addActionListener(e -> submitExam());
+    optionA = new JRadioButton();
+    optionB = new JRadioButton();
+    optionC = new JRadioButton();
+    optionD = new JRadioButton();
 
-        bottom.add(prev);
-        bottom.add(next);
-        bottom.add(submit);
+    optionA.setFont(new Font("Arial", Font.PLAIN, 15));
+    optionB.setFont(new Font("Arial", Font.PLAIN, 15));
+    optionC.setFont(new Font("Arial", Font.PLAIN, 15));
+    optionD.setFont(new Font("Arial", Font.PLAIN, 15));
 
-        add(bottom, BorderLayout.SOUTH);
-    }
+    optionsGroup = new ButtonGroup();
+    optionsGroup.add(optionA);
+    optionsGroup.add(optionB);
+    optionsGroup.add(optionC);
+    optionsGroup.add(optionD);
+
+    optionsPanel.add(optionA);
+    optionsPanel.add(optionB);
+    optionsPanel.add(optionC);
+    optionsPanel.add(optionD);
+
+    questionPanel.add(questionLabel, BorderLayout.NORTH);
+    questionPanel.add(optionsPanel, BorderLayout.CENTER);
+
+    add(questionPanel, BorderLayout.CENTER);
+
+    JPanel bottomPanel = new JPanel(
+            new FlowLayout(FlowLayout.CENTER, 20, 10)
+    );
+
+    JButton prevBtn = new JButton("⬅ Previous");
+    JButton nextBtn = new JButton("Next ➡");
+    JButton submitBtn = new JButton("Submit Exam");
+
+    prevBtn.setFont(new Font("Arial", Font.BOLD, 14));
+    nextBtn.setFont(new Font("Arial", Font.BOLD, 14));
+    submitBtn.setFont(new Font("Arial", Font.BOLD, 14));
+
+    prevBtn.addActionListener(e -> previousQuestion());
+    nextBtn.addActionListener(e -> nextQuestion());
+    submitBtn.addActionListener(e -> submitExam());
+
+    bottomPanel.add(prevBtn);
+    bottomPanel.add(nextBtn);
+    bottomPanel.add(submitBtn);
+
+    add(bottomPanel, BorderLayout.SOUTH);
+}
     private void loadQuestions() {
 
         try (Connection conn = DBConnection.getConnection()) {

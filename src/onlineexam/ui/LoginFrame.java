@@ -19,14 +19,56 @@ public class LoginFrame extends JFrame {
 
     public LoginFrame() {
 
-        setTitle("Online Examination System - Login");
-        setSize(450, 300);
+        setTitle("Online Examination System");
+        setSize(550, 400);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        JPanel panel = new JPanel(new GridLayout(4, 2, 10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        initUI();
+
+        setVisible(true);
+    }
+
+    private void initUI() {
+
+        /*
+         * TOP TITLE PANEL
+         */
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
+
+        JLabel titleLabel = new JLabel(
+                "ONLINE EXAMINATION SYSTEM",
+                JLabel.CENTER
+        );
+
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+
+        JLabel subtitleLabel = new JLabel(
+                "Secure Login Portal",
+                JLabel.CENTER
+        );
+
+        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+
+        topPanel.add(titleLabel, BorderLayout.CENTER);
+        topPanel.add(subtitleLabel, BorderLayout.SOUTH);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        /*
+         * CENTER LOGIN PANEL
+         */
+        JPanel centerPanel = new JPanel(new GridBagLayout());
+        centerPanel.setBorder(
+                BorderFactory.createEmptyBorder(10, 30, 20, 30)
+        );
+
+        JPanel formPanel = new JPanel(new GridLayout(4, 2, 15, 15));
+        formPanel.setBorder(
+                BorderFactory.createTitledBorder("Login Details")
+        );
 
         usernameField = new JTextField();
         passwordField = new JPasswordField();
@@ -39,23 +81,40 @@ public class LoginFrame extends JFrame {
 
         JButton loginButton = new JButton("Login");
 
-        panel.add(new JLabel("Username:"));
-        panel.add(usernameField);
+        loginButton.setFont(new Font("Arial", Font.BOLD, 15));
 
-        panel.add(new JLabel("Password:"));
-        panel.add(passwordField);
+        formPanel.add(new JLabel("Username:"));
+        formPanel.add(usernameField);
 
-        panel.add(new JLabel("Role:"));
-        panel.add(roleBox);
+        formPanel.add(new JLabel("Password:"));
+        formPanel.add(passwordField);
 
-        panel.add(new JLabel());
-        panel.add(loginButton);
+        formPanel.add(new JLabel("Role:"));
+        formPanel.add(roleBox);
 
-        add(panel, BorderLayout.CENTER);
+        formPanel.add(new JLabel());
+        formPanel.add(loginButton);
+
+        centerPanel.add(formPanel);
+
+        add(centerPanel, BorderLayout.CENTER);
+
+        /*
+         * FOOTER PANEL
+         */
+        JPanel bottomPanel = new JPanel();
+
+        JLabel footerLabel = new JLabel(
+                "Java Swing + MySQL Based Examination System"
+        );
+
+        footerLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+
+        bottomPanel.add(footerLabel);
+
+        add(bottomPanel, BorderLayout.SOUTH);
 
         loginButton.addActionListener(e -> login());
-
-        setVisible(true);
     }
 
     private void login() {
@@ -64,21 +123,30 @@ public class LoginFrame extends JFrame {
         String password = new String(passwordField.getPassword()).trim();
         String selectedRole = roleBox.getSelectedItem().toString();
 
+        /*
+         * INPUT VALIDATION
+         */
         if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Please fill all fields.");
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please fill all fields."
+            );
             return;
         }
 
         try (Connection conn = DBConnection.getConnection()) {
 
             if (conn == null) {
-                JOptionPane.showMessageDialog(this,
-                        "Database connection failed.");
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Database connection failed."
+                );
                 return;
             }
 
-            // Fetch user by username only
+            /*
+             * SAFE LOGIN USING PREPARED STATEMENT
+             */
             PreparedStatement ps = conn.prepareStatement(
                     "SELECT id, role, password FROM users WHERE username=?"
             );
@@ -93,30 +161,43 @@ public class LoginFrame extends JFrame {
                 String dbRole = rs.getString("role");
                 String hashedPassword = rs.getString("password");
 
-                // Verify password using BCrypt
+                /*
+                 * BCrypt PASSWORD CHECK
+                 */
                 boolean passwordMatched = PasswordUtil.checkPassword(
                         password,
                         hashedPassword
                 );
 
                 if (!passwordMatched) {
-                    JOptionPane.showMessageDialog(this,
-                            "Invalid password!");
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Invalid password!"
+                    );
                     return;
                 }
 
-                // Verify selected role
+                /*
+                 * ROLE VALIDATION
+                 */
                 if (!dbRole.equalsIgnoreCase(selectedRole)) {
-                    JOptionPane.showMessageDialog(this,
-                            "Incorrect role selected!");
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Incorrect role selected!"
+                    );
                     return;
                 }
 
-                JOptionPane.showMessageDialog(this,
-                        "Login Successful!");
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Login Successful!"
+                );
 
                 dispose();
 
+                /*
+                 * ROLE-BASED REDIRECTION
+                 */
                 if (selectedRole.equalsIgnoreCase("ADMIN")) {
                     new AdminFrame();
                 }
@@ -128,13 +209,17 @@ public class LoginFrame extends JFrame {
                 }
 
             } else {
-                JOptionPane.showMessageDialog(this,
-                        "User not found!");
+                JOptionPane.showMessageDialog(
+                        this,
+                        "User not found!"
+                );
             }
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Login Error!");
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Login Error!"
+            );
             e.printStackTrace();
         }
     }
